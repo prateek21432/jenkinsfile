@@ -1,6 +1,11 @@
 pipeline {
     agent any
-
+    parameters{
+             string(name: 'phase1', defaultValue: 'clean test', description: 'mvn phase')
+             string(name: 'phase2', defaultValue: 'package', description: 'mvn phase')
+             string(name: 'version', defaultValue: 'spring-petclinic-3.4.0-SNAPSHOT', description: 'snap version')
+}
+    
     stages {
         stage('GIT checkout') {
             steps {
