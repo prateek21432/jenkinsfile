@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('GIT checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'cb2c45ad-0f2c-4589-95af-7971f703b582', url: 'https://github.com/prateek21432/petclinic'
+            }
+        }
+        stage('test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+      stage('scanning') {
+            steps {
+                withSonarQubeEnv(installationName: 'sonarqube', credentialsId: 'new_token') {
+                    sh 'mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
+                }
+            }
+        }
+        stage('package') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext(
+                subject: "Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """Maven package built successfully.
+
+                        Job Name   : ${env.JOB_NAME}
+                        Build No   : ${env.BUILD_NUMBER}
+                        Build URL  : ${env.BUILD_URL}
+                        Workspace  : ${env.WORKSPACE}
+                        Status     : SUCCESS
+                        """,
+                to: "prateekp2138@gmail.com"
+            )
+        }
+
+        failure {
+            emailext(
+                subject: "Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """Build FAILED ❌
+
+                    Job Name  : ${env.JOB_NAME}
+                    Build No  : ${env.BUILD_NUMBER}
+                    Build URL : ${env.BUILD_URL}
+                    
+                    Please check Jenkins console logs.
+                    """,
+                to: "prateekp2138@gmail.com"
+            )
+        }
+    }
+}
