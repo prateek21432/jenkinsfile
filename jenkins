@@ -1,23 +1,27 @@
 pipeline {
     agent any
-    parameters{
-             string(name: "phase1", defaultValue: "clean test", description: "mvn phase")
-             string(name: "phase2", defaultValue: "package", description: "mvn phase")
-             string(name: "version", defaultValue: "spring-petclinic-3.4.0-SNAPSHOT", description: "snap version")
-}
-    
+
     stages {
-        stage('GIT checkout') {
+        stage('Job Started') {
             steps {
-                git branch: 'main', credentialsId: 'sqa_181a117e3408d9c1d8500817d5be7d5a714b0e7e', url: 'https://github.com/prateek21432/petclinic'
+                emailext(
+                    to: 'prateekp2138@gmail.com',
+                    subject: "STARTED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: '${SCRIPT, template="started.groovy"}'
+                )
+            }
+        }
+        stage('git checkout') {
+            steps {
+                git branch: 'main', credentialsId: '4f28b9f9-d502-4892-87ab-8492b862d29d', url: 'https://github.com/prateek21432/spring-petclinic-k8'
             }
         }
         stage('test') {
             steps {
-                sh 'mvn test'
+                sh "mvn clean test"
             }
         }
-      stage('scanning') {
+        stage('scanning') {
             steps {
                 withSonarQubeEnv(installationName: 'sonarqube', credentialsId: 'sonartoken') {
                     sh 'mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
@@ -26,39 +30,24 @@ pipeline {
         }
         stage('package') {
             steps {
-                sh 'mvn package'
+                sh "mvn package"
             }
         }
     }
-
     post {
         success {
             emailext(
-                subject: "Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """Maven package built successfully.
-
-                        Job Name   : ${env.JOB_NAME}
-                        Build No   : ${env.BUILD_NUMBER}
-                        Build URL  : ${env.BUILD_URL}
-                        Workspace  : ${env.WORKSPACE}
-                        Status     : SUCCESS
-                        """,
-                to: "prateekp2138@gmail.com"
+                to: 'prateekp2138@gmail.com',
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: '${SCRIPT, template="success.groovy"}'
             )
         }
 
         failure {
             emailext(
-                subject: "Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """Build FAILED ❌
-
-                    Job Name  : ${env.JOB_NAME}
-                    Build No  : ${env.BUILD_NUMBER}
-                    Build URL : ${env.BUILD_URL}
-                    
-                    Please check Jenkins console logs.
-                    """,
-                to: "prateekp2138@gmail.com"
+                to: 'prateekp2138@gmail.com',
+                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: '${SCRIPT, template="failure.groovy"}'
             )
         }
     }
